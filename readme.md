@@ -26,9 +26,9 @@
             
 ### Functions in procs.py
 
-- adversial validation
-- parallelism map in dataframe
-- correlation matrix for categorical variables
+- [adversial validation](http://manishbarnwal.com/blog/2017/02/15/introduction_to_adversarial_validation/)
+- parallel operations on [Pandas dataframe](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html) using [multiprocessing module](https://docs.python.org/3.6/library/multiprocessing.html)
+- correlation matrix for categorical variables using [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V)
 - save your prediction results in uniquely identifiable format
 
 
