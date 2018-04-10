@@ -37,5 +37,5 @@ In order to use run.py you must execute passing in input the name of the file to
 NOTE: the file passed in input must contain a function called 'main'<br>
 The advantage from run.py is that its checks every time that all the requirements are satisfied
 and add all the folders under src to the PYTHONPATH<br>
-Some examples :
+Some examples:
 `python run.py preprocess`, `python run.py run_model`
