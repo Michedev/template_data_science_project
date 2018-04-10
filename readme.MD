@@ -1,7 +1,8 @@
 # Mikedev's Data science project template
 
 ## Folder structure
-    ├── costants           <──── Contains many useful variables and functions
+    ├── constants           <──── Contains many useful variables and 
+functions
     │   ├── dataset.py     <──── Some costants regarding the dataset structure
     │   ├── model.py       <──── Your model hyperparameters
     │   ├── paths.py       <──── Costant variables contains many paths of the project 
