@@ -35,7 +35,7 @@
 ### how to use run.py and why
 In order to use run.py you must execute passing in input the name of the file to execute<br>
 NOTE: the file passed in input must contain a function called _main_<br>
-The advantages from _run.py_ is that its checks every time that all the packages in _requirements.txt_ are satisfied
-and add all the folders under src to the _PYTHONPATH_ <br>
-Some examples:
-`python run.py preprocess`, `python run.py run_model`
+The advantages from _run.py_ is that its checks every time you use it that all the packages in _requirements.txt_ are satisfied
+and add all the folders under src to the [_PYTHONPATH_](https://docs.python.org/3/using/cmdline.html#envvar-PYTHONPATH) <br>
+Some command examples:
+`python run.py preprocess` -> exec _src/data/preprocess.main()_, `python run.py run_model` -> exec _src/model/run_model.main()_
