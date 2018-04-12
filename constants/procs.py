@@ -1,28 +1,36 @@
 from multiprocessing import Pool, cpu_count
 from pandas import DataFrame
-from typing import Callable, List
+from typing import Callable, List, Union, Dict, Any
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from dataset import TARGETVAR, NROWS_TRAIN, CATEGORICAL_COLS_RAW
-from paths import PRJ_ROOT
+from .dataset import TARGETVAR, NROWS_TRAIN, CATEGORICAL_COLS_RAW
+from .paths import PRJ_ROOT, OUTPUT
 from operator import itemgetter
 from math import log
 from scipy.stats import chi2_contingency
 from datetime import datetime
+from functools import partial
 
 
-def parallel_map_df(df: DataFrame, func: Callable[DataFrame, DataFrame], num_cores=cpu_count()):
+def parallel_map_df(func: Callable[[DataFrame, Any], DataFrame], num_cores=cpu_count()):
     """
+    Python decorator that must be wrapped to a function that receive as first input a pandas Dataframe.
     Apply a trasformation on all the dataframe in parallel using the multiprocessing module
     """
-    num_partitions = len(df) // num_cores
-    df_split = np.array_split(df, num_partitions)
-    pool = Pool(num_cores)
-    df = pd.concat(pool.map(func, df_split))
-    pool.close()
-    pool.join()
-    return df
+
+    def wrapper(df: DataFrame, *args, **kwargs):
+        partial_func = partial(func, *args, **kwargs)
+        partitions = np.linspace(0, len(df) - 1, num_cores + 1).round().astype('int')
+        df_split = [df.iloc[partitions[i]:partitions[i + 1]] for i in range(len(partitions) - 1)]
+        print(len(df_split))
+        pool = Pool(num_cores)
+        df = pd.concat(pool.map(partial_func, df_split))
+        pool.close()
+        pool.join()
+        return df
+
+    return wrapper
 
 
 def _take_first_k(seq: np.array, k, keyf=lambda x: x) -> np.array:
@@ -99,9 +107,27 @@ def save_predictions(y_pred, index=None):
     :param index: List of indexes to put before y_pred
     :return: None
     """
-    prediction_fold = PRJ_ROOT / 'predictions'
+    prediction_fold = PRJ_ROOT / 'outputs'
     if not prediction_fold.exists():
         prediction_fold.mkdir()
     currtime = str(datetime.now()).replace(' ', '_').replace(':', '_').replace('.', '_')
     res = pd.DataFrame({'index': index, 'ypred': p}) if index else pd.DataFrame(y_pred)
     res.to_csv(prediction_fold / 'prediction_' + currtime + '.csv', index=False, header=False)
+
+
+def save_score(model: str, params: Dict[str, float], score: Union[float, Dict[str, float]], comment=''):
+    scores_folder = PRJ_ROOT / 'output'
+    if not scores_folder.exists():
+        scores_folder.mkdir()
+    with open(scores_folder / 'scores_log.csv', mode='a+') as f:
+        f.write(
+            f'{model};'
+            f' {repr(params)[1:-1]};'
+            f' {str(score) if type(score) == float else repr(score)[1:-1]};'
+            f' {comment};'
+            f' {datetime.now()}\n')
+
+
+def load_scores() -> DataFrame:
+    return pd.read_csv(OUTPUT / 'scores_log.csv', names=['Model', 'Params', 'Score', 'Comment', 'Datetime'],
+                       index_col=False, sep=';')
