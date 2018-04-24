@@ -5,25 +5,37 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from .dataset import TARGETVAR, NROWS_TRAIN, CATEGORICAL_COLS_RAW
-from .paths import PRJ_ROOT, OUTPUT
+from .paths import PRJ_ROOT, SCORE_FILE
 from operator import itemgetter
 from math import log
 from scipy.stats import chi2_contingency
 from datetime import datetime
 from functools import partial
+import json
 
 
 def parallel_map_df(func: Callable[[DataFrame, Any], DataFrame], num_cores=cpu_count()):
     """
     Python decorator that must be wrapped to a function that receive as first input a pandas Dataframe.
     Apply a trasformation on all the dataframe in parallel using the multiprocessing module
+
+    Example:
+        @parallel_map_df
+        def sum_of_cols(df):
+            df['c'] = df['a'] + df['b']
+            return df
+
+
+        @parallel_map_df(num_cores=16)
+        def sum_of_cols(df):
+            df['c'] = df['a'] + df['b']
+            return df
     """
 
     def wrapper(df: DataFrame, *args, **kwargs):
         partial_func = partial(func, *args, **kwargs)
         partitions = np.linspace(0, len(df) - 1, num_cores + 1).round().astype('int')
         df_split = [df.iloc[partitions[i]:partitions[i + 1]] for i in range(len(partitions) - 1)]
-        print(len(df_split))
         pool = Pool(num_cores)
         df = pd.concat(pool.map(partial_func, df_split))
         pool.close()
@@ -115,19 +127,26 @@ def save_predictions(y_pred, index=None):
     res.to_csv(prediction_fold / 'prediction_' + currtime + '.csv', index=False, header=False)
 
 
-def save_score(model: str, params: Dict[str, float], score: Union[float, Dict[str, float]], comment=''):
-    scores_folder = PRJ_ROOT / 'output'
-    if not scores_folder.exists():
-        scores_folder.mkdir()
-    with open(scores_folder / 'scores_log.csv', mode='a+') as f:
-        f.write(
-            f'{model};'
-            f' {repr(params)[1:-1]};'
-            f' {str(score) if type(score) == float else repr(score)[1:-1]};'
-            f' {comment};'
-            f' {datetime.now()}\n')
+def save_score(model: str, params: Dict[str, Any], scores: Dict[str, Any], comment='',
+               date: Union[str, datetime] = 'now'):
+    data = {'model': model, 'comment': comment,
+            **{f'param_{param}': param_value for param, param_value in params.items()},
+            **{f'score_{score}': score_value for score, score_value in scores.items()}}
+    if date == 'now':
+        date = datetime.now()
+    if date:
+        data['date'] = date
+    with open(SCORE_FILE, mode='r') as score_f:
+        try:
+            old_scores = json.load(score_f)
+        except json.JSONDecodeError:
+            old_scores = []
+    with open(SCORE_FILE, mode='w+') as score_f:
+        json.dump(old_scores + [data], score_f)
 
 
 def load_scores() -> DataFrame:
-    return pd.read_csv(OUTPUT / 'scores_log.csv', names=['Model', 'Params', 'Score', 'Comment', 'Datetime'],
-                       index_col=False, sep=';')
+    return pd.read_json(SCORE_FILE)
+
+
+__all__ = ['parallel_map_df', 'adversial_validation', 'save_predictions', 'save_score', 'load_scores', 'cramerv']
