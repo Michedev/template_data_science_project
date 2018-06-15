@@ -10,4 +10,6 @@ MODELS = PRJ_ROOT / 'models'
 NOTEBOOKS = PRJ_ROOT / 'notebooks'
 REPORT = PRJ_ROOT / 'report'
 OUTPUT = PRJ_ROOT / 'output'
+for path in [SRC, DATA, DATA_RAW, DATA_PROCESSING, DATA_PROCESSED, MODELS, NOTEBOOKS, REPORT, OUTPUT]:
+    path.mkdir_p()
 SCORE_FILE : Path = OUTPUT / 'scores.json'

@@ -148,5 +148,50 @@ def save_score(model: str, params: Dict[str, Any], scores: Dict[str, Any], comme
 def load_scores() -> DataFrame:
     return pd.read_json(SCORE_FILE)
 
+from copy import deepcopy
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
-__all__ = ['parallel_map_df', 'adversial_validation', 'save_predictions', 'save_score', 'load_scores', 'cramerv']
+
+def fill_na_numeric(df, column):
+    model = RandomForestRegressor(n_jobs=-1)
+    return _fill_na(df, column, model)
+
+def fill_na_category(df, column):
+    model = RandomForestClassifier(n_jobs=-1)
+    return _fill_na(df, column, model)
+
+def _fill_na(df, column, model):
+    na_rows = df[column].isna()
+    train, test = df[~na_rows], df[na_rows].drop(columns=column)
+    model.fit(train.drop(columns=column).values, train[column].values)
+    del train
+    new_values = model.predict(test.values)
+    del model
+    test[column] = new_values
+    df.loc[test.index, column] = test[column]
+    del test
+    return df
+
+def cat_to_int(df):
+    strcols = list(df.select_dtypes(include=['object', 'category']).columns)
+    for strcol in strcols:
+        df[strcol] = pd.to_numeric(df[strcol].astype('category').cat.codes, downcast='integer')
+    return df
+
+def fill_quantitative_with_mean(df, quant_cols):
+    df[quant_cols] = df[quant_cols].fillna(df[quant_cols].mean())
+    return df
+
+def fill_na_categories(df, category_cols_na):
+    quantitative_na_cols = list(df.loc[:, df.isna().any()].select_dtypes(exclude=['category', 'object', 'bool']).columns)
+    for category_col_na in category_cols_na:
+        tmp = df.copy()
+        tmp = fill_quantitative_with_mean(tmp, quantitative_na_cols)
+        tmp = cat_to_int(tmp)
+        tmp[category_col_na] = tmp[category_col_na].replace(-1, np.NaN)
+        tmp = fill_na_category(tmp, category_col_na)
+        del train_test[category_col_na]
+        df[category_col_na] = tmp[category_col_na]
+    return df
+
+__all__ = ['parallel_map_df', 'adversial_validation', 'save_predictions', 'save_score', 'load_scores', 'cramerv', 'cat_to_int', 'fill_na_category', 'fill_na_numeric']
