@@ -2,6 +2,7 @@ from sklearn.model_selection import validation_curve
 from constants.dataset import TARGETVAR
 import numpy as np
 import matplotlib.pyplot as plt
+import lightgbm as lgb
 
 
 def validate_param(param_name, param_values, train, model=lgb.LGBMRegressor(n_jobs=-1), scoring='accuracy', cv=None):
