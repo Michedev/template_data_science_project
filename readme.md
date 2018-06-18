@@ -5,7 +5,7 @@
     │   ├── dataset.py     <──── Some costants regarding the dataset structure
     │   ├── model.py       <──── Your model hyperparameters
     │   ├── paths.py       <──── Costant variables contains many paths of the project 
-    │   └── procs.py       <──── Useful functions in many situations
+    │   └── procs       <──── Useful functions in many situations
     ├── data               <──── Where all the data are saved
     │   ├── processed      <──── Data to submit to your model
     │   ├── processing     <──── Data saved during preprocessing phase
@@ -24,13 +24,14 @@
         └── model
             └── run_model.py      <──── start the model
             
-### Functions in _procs.py_
+### Functions in _procs_
 
 - [adversial validation](http://manishbarnwal.com/blog/2017/02/15/introduction_to_adversarial_validation/)
 - parallel operations on [Pandas dataframe](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html) using [multiprocessing module](https://docs.python.org/3.6/library/multiprocessing.html)
 - correlation matrix for categorical variables using [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V)
-- save your prediction results in uniquely identifiable format using [datetime module](https://docs.python.org/3.6/library/datetime.html)
-- save and load your experiments with the model
+- Do a [2-PCA](https://en.wikipedia.org/wiki/Principal_component_analysis)([sklearn](http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html)) on the X of the dataset and plot it with different colors for target variable
+- Make a cluster prediction: do a cluster in the train and test, then create n models where n is the number of clusters, then each model in the model train and predict in the respective cluster
+- Fill na with ML model
 
 ### how to use _run.py_ and why
 In order to use _run.py_ you must execute passing in input the name of the file to execute<br>
