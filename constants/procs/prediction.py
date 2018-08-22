@@ -19,7 +19,11 @@ class ClusterPrediction(ABC):
         """
         self.n_clusters = n_clusters or cluster.n_cluster
         self.model_f = model_f
-        self.cluster_obj = cluster or KMeans(n_clusters, **params_kmeans)
+        if cluster == None:
+            params_kmeans = params_kmeans or dict()
+            self.cluster_obj = KMeans(n_clusters, **params_kmeans)
+        else:
+            self.cluster_obj = cluster
         self.clusters_test = None
         self.models = None
 
@@ -53,7 +57,7 @@ class ClusterValuePrediction(ClusterPrediction):
         indx_clusters = []
         for i in range(self.n_clusters):
             cluster = test.loc[self.clusters_test == i, :]
-            prediction = self.models[i].predict(cluster.values)[:, 1]
+            prediction = self.models[i].predict(cluster.values)
             indx_clusters.append((cluster.index, prediction))
         dfs = [pd.DataFrame(p, index=indx_cluster, columns=['p']) for indx_cluster, p in indx_clusters]
         yhat = pd.concat(dfs).sort_index().values

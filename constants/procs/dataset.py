@@ -121,14 +121,19 @@ def fill_na(df: pd.DataFrame, column: str, model=None):
     :param model: model that fill na
     :return: the dataframe with na of column filled
     """
-    model = model or RandomForestClassifier(n_jobs=-1)
+    if model == None:
+        model = RandomForestClassifier(n_jobs=-1)
     return _fill_na(df, column, model)
 
 
 def _fill_na(df, column, model):
     na_rows = df[column].isna()
     train, test = df[~na_rows], df[na_rows].drop(columns=column)
-    model.fit(train.drop(columns=column).values, train[column].values)
+    try:
+        model.fit(train.drop(columns=column).values, train[column].values)
+    except ValueError as e:
+        if str(e) == "Unknown label type: 'continuous'":
+            model.fit(train.drop(columns=column).values, train[column].values.astype('int'))
     del train
     new_values = model.predict(test.values)
     del model
@@ -143,7 +148,7 @@ def _cat_to_int(df, targetcol):
     for strcol in strcols:
         df[strcol] = pd.to_numeric(df[strcol].astype('category').cat.codes, downcast='integer')
     if targetcol in strcols:
-        df = df[targetcol].replace(-1, np.NaN)
+        df[targetcol] = df[targetcol].replace(-1, np.NaN)
     return df
 
 
@@ -169,8 +174,11 @@ def fill_na_multiple(df: pd.DataFrame, cols_na: List[str], model=None):
     quantitative_na_cols = df.loc[:, df.isna().any()]\
                            .select_dtypes(exclude=['category', 'object', 'bool'])\
                            .columns.tolist()
-    model = model or RandomForestClassifier(n_jobs=-1)
+    if model == None:
+        model = RandomForestClassifier(n_jobs=-1)
     for col_na in cols_na:
+        if col_na in quantitative_na_cols:
+            quantitative_na_cols.remove(col_na)
         tmp = df.copy()
         tmp = _fill_quantitative_with_mean(tmp, quantitative_na_cols)
         tmp = _cat_to_int(tmp, col_na)
