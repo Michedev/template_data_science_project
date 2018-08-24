@@ -55,15 +55,18 @@ def _take_first_k(seq: np.array, k, keyf=lambda x: x) -> np.array:
     return first_k
 
 
-def adversial_validation(train: DataFrame, test: DataFrame, perc_val=0.3, model=RandomForestClassifier()) -> Tuple[DataFrame, DataFrame]:
+def adversial_validation(train: DataFrame, test: DataFrame, perc_val=0.3, model=RandomForestClassifier()) -> Tuple[
+    DataFrame, DataFrame]:
     """
     Do an adversial validation on the input datasets. Basically the adversial validation consists on finding the most similar
     validation set to the test test. You can find more info here: http://manishbarnwal.com/blog/2017/02/15/introduction_to_adversarial_validation/
     Attention: the columns on train and test must be in a numeric form
+    :return a tuple (train, validation)
     """
-    from constants.dataset import TARGETVAR, NROWS_TRAIN
+    from constants.dataset import TARGETVAR
     train_orig = train
-    train = train.drop(TARGETVAR, axis=1)
+    if TARGETVAR in train.columns:
+        train = train.drop(TARGETVAR, axis=1)
     if TARGETVAR in test.columns:
         test = test.drop(TARGETVAR, axis=1)
     train['__target'] = 0
@@ -74,7 +77,7 @@ def adversial_validation(train: DataFrame, test: DataFrame, perc_val=0.3, model=
     del train['__target']
     del test['__target']
     p = list(enumerate(map(itemgetter(1), model.predict_proba(train))))
-    k = int(round(perc_val * NROWS_TRAIN))
+    k = int(round(perc_val * len(train)))
     higher_proba = _take_first_k(p, k, itemgetter(1))
     newtest = train_orig.iloc[list(map(itemgetter(0), higher_proba))]
     newtrain = train_orig.drop(newtest.index)
@@ -113,19 +116,6 @@ def cramerv(dataset: DataFrame, cols: List[str] = CATEGORICAL_COLS) -> np.matrix
     return matr
 
 
-def fill_na(df: pd.DataFrame, column: str, model=None):
-    """
-    fill na of column as prediction task
-    :param df: pandas dataframe
-    :param column: column to fill na
-    :param model: model that fill na
-    :return: the dataframe with na of column filled
-    """
-    if model == None:
-        model = RandomForestClassifier(n_jobs=-1)
-    return _fill_na(df, column, model)
-
-
 def _fill_na(df, column, model):
     na_rows = df[column].isna()
     train, test = df[~na_rows], df[na_rows].drop(columns=column)
@@ -157,7 +147,7 @@ def _fill_quantitative_with_mean(df, quant_cols):
     return df
 
 
-def fill_na_multiple(df: pd.DataFrame, cols_na: List[str], model=None):
+def fill_na_as_prediction(df: pd.DataFrame, cols_na: List[str], model=None):
     """
     Fill na of column as prediction task.
     df category columns must be of type
@@ -171,10 +161,10 @@ def fill_na_multiple(df: pd.DataFrame, cols_na: List[str], model=None):
     :param model: By default it is a sklearn RandomForestClassifier
     :return: a new dataframe with na filled
     """
-    quantitative_na_cols = df.loc[:, df.isna().any()]\
-                           .select_dtypes(exclude=['category', 'object', 'bool'])\
-                           .columns.tolist()
-    if model == None:
+    quantitative_na_cols = df.loc[:, df.isna().any()] \
+        .select_dtypes(exclude=['category', 'object', 'bool']) \
+        .columns.tolist()
+    if model is None:
         model = RandomForestClassifier(n_jobs=-1)
     for col_na in cols_na:
         if col_na in quantitative_na_cols:
@@ -182,9 +172,13 @@ def fill_na_multiple(df: pd.DataFrame, cols_na: List[str], model=None):
         tmp = df.copy()
         tmp = _fill_quantitative_with_mean(tmp, quantitative_na_cols)
         tmp = _cat_to_int(tmp, col_na)
-        tmp = fill_na(tmp, col_na, model=model)
-        del df[col_na]
-        df[col_na] = tmp[col_na]
+        tmp = _fill_na(tmp, col_na, model)
+        if col_na in df.select_dtypes(include=['category', 'object']).columns:
+            df[col_na] = tmp[col_na].astype('category')
+        else:
+            df[col_na] = tmp[col_na]
+        del tmp
     return df
 
-__all__ = ['fill_na_multiple', 'fill_na', 'cramerv', 'adversial_validation', 'parallel_map_df']
+
+__all__ = ['fill_na_as_prediction', 'cramerv', 'adversial_validation', 'parallel_map_df']

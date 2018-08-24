@@ -1,7 +1,7 @@
 import pandas as pd
-
 from constants.dataset import TARGETVAR
 from sklearn.cluster import KMeans
+from datetime import datetime
 from abc import ABC, abstractmethod
 
 
@@ -9,7 +9,7 @@ class ClusterPrediction(ABC):
 
     def __init__(self, model_f, cluster=None, n_clusters=None, params_kmeans=None):
         """
-        :param model_f: () -> {sklearn interface model}  a function that return a new instance of the model
+        :param model_f: (index_cluster) -> {sklearn interface model}  a function that return a new instance of the model
         :param cluster: An instance of cluster algorithm. Must support 'fit_predict' that given
                         in input the numpy matrix return for each row the cluster which it is in.
                         Otherwise use KMeans clustering algorithm and the two following params
@@ -19,22 +19,21 @@ class ClusterPrediction(ABC):
         """
         self.n_clusters = n_clusters or cluster.n_cluster
         self.model_f = model_f
-        if cluster == None:
-            params_kmeans = params_kmeans or dict()
-            self.cluster_obj = KMeans(n_clusters, **params_kmeans)
-        else:
-            self.cluster_obj = cluster
+        params_kmeans = params_kmeans or dict()
+        if cluster is None:
+            cluster = KMeans(n_clusters, **params_kmeans)
+        self.cluster_obj = cluster
         self.clusters_test = None
         self.models = None
 
-    def fit(self, train: pd.DataFrame, test: pd.DataFrame, target=None, fit_params=None):
+    def fit(self, train: pd.DataFrame, test: pd.DataFrame, target: str = None, fit_params=None) -> 'ClusterPrediction':
         target = target or TARGETVAR
         fit_params = fit_params or dict()
         clusters = self.cluster_obj.fit_predict(X=pd.concat([train.drop(columns=TARGETVAR), test]))
         clusters_train, clusters_test = clusters[:len(train)], clusters[len(train):]
         models = []
         for i in range(self.cluster_obj.n_clusters):
-            model = self.model_f()
+            model = self.model_f(i)
             cluster = train.loc[clusters_train == i, :]
             X_train, y_train = cluster.drop(columns=target), cluster[target]
             model.fit(X_train, y_train.values, **fit_params)
@@ -82,4 +81,8 @@ class ClusterProbabilityPrediction(ClusterPrediction):
         return predictions
 
 
-__all__ = ['ClusterProbabilityPrediction', 'ClusterValuePrediction']
+def str_currtime() -> str:
+    return datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+
+
+__all__ = ['ClusterProbabilityPrediction', 'ClusterValuePrediction', 'str_currtime']
