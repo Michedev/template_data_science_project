@@ -10,6 +10,7 @@ SRC: Path = PROJECT_ROOT / 'src'
 def update_pythonpath():
     sys.path += list(SRC.walkdirs())
     sys.path.append(PROJECT_ROOT / 'costants')
+    sys.path.append('src/')
 
 
 def check_requirements():

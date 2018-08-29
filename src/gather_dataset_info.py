@@ -100,9 +100,9 @@ NCOLS_TEST = {test_cols}
 TARGETVAR = {repr(colsinfo.targetvar)}
 IDCOL = {repr(colsinfo.idcol)}
 
-CATEGORICAL_COLS_RAW = {colsinfo.catcols}
-QUANTITATIVE_COLS_RAW = {colsinfo.quacols}
-DATES_COLS_RAW = {colsinfo.datecols}"""
+CATEGORICAL_COLS = {colsinfo.catcols}
+QUANTITATIVE_COLS = {colsinfo.quacols}
+DATES_COLS = {colsinfo.datecols}"""
     with open('constants/dataset.py', mode='w') as f:
         f.write(text)
 
